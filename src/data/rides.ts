@@ -16,7 +16,7 @@ export const rides: Ride[] = [
     id: "rolling-kemayoran-senayan-26072026",
     title: "Fun Kemayoran-Senayan Ride",
     date: "Jul 26, 2026",
-    meetTime: "23:30",
+    meetTime: "06:30",
     location: "Kemayoran-Senayan Route, Jakarta",
     mapUrl:
       "https://www.google.com/maps/place/Kemayoran+to+Senayan/data=!4m2!3m1!1s0x0:0x162be0874016b4b0?sa=X&ved=1t:2428&ictx=111",
