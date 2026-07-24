@@ -15,8 +15,16 @@ export default defineConfig({
       server: { entry: "server" },
       prerender: {
         enabled: true,
+        crawlLinks: false,
+        filter: (page) => !page.path.startsWith("/roster"),
       },
-      pages: [{ path: "/" }, { path: "/rides" }, { path: "/reels" }, { path: "/vault" }],
+      pages: [
+        { path: "/" },
+        { path: "/rides" },
+        { path: "/reels" },
+        { path: "/vault" },
+        { path: "/roster", prerender: { enabled: false } },
+      ],
     }),
     react(),
     tailwindcss(),
