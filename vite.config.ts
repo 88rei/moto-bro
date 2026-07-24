@@ -13,6 +13,10 @@ export default defineConfig({
   plugins: [
     tanstackStart({
       server: { entry: "server" },
+      prerender: {
+        enabled: true,
+      },
+      pages: [{ path: "/" }, { path: "/rides" }, { path: "/reels" }, { path: "/vault" }],
     }),
     react(),
     tailwindcss(),
