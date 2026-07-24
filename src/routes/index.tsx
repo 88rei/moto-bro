@@ -2,11 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import heroImg from "@/assets/hero.jpg";
 import { riders } from "@/data/riders";
 import { rides } from "@/data/rides";
-import { vault } from "@/data/vault";
+import { vaultShowcase } from "@/data/vault";
 import { SectionHeader } from "@/components/site/SectionHeader";
 import { RiderCard } from "@/components/site/RiderCard";
 import { RideTimelineItem } from "@/components/site/RideTimelineItem";
 import { ArrowRight } from "lucide-react";
+
+const noImageFallback = `data:image/svg+xml;utf8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200"><rect width="1200" height="1200" fill="#111111"/><rect x="80" y="80" width="1040" height="1040" rx="24" ry="24" fill="none" stroke="#3b3b3b" stroke-width="16"/><path d="M300 820l180-220 140 140 180-220 100 120v180H300z" fill="#2a2a2a"/><circle cx="460" cy="420" r="70" fill="#2a2a2a"/><text x="600" y="980" font-family="monospace" font-size="64" fill="#9a9a9a" text-anchor="middle">NO IMAGE</text></svg>'
+)}`;
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,7 +27,7 @@ export const Route = createFileRoute("/")({
 function Home() {
   const nextRide = rides.find((r) => r.status === "upcoming");
   const featuredRiders = riders.slice(0, 2);
-  const vaultThumbs = vault.slice(0, 4);
+  const vaultThumbs = vaultShowcase;
 
   return (
     <div className="animate-entrance">
@@ -112,7 +116,18 @@ function Home() {
         <div className="grid grid-cols-2 gap-2">
           {vaultThumbs.map((v, i) => (
             <div key={i} className="aspect-square bg-neutral-900 overflow-hidden">
-              <img src={v.src} alt={v.alt} loading="lazy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+              <img
+                src={v.src}
+                alt={v.alt}
+                loading="lazy"
+                onError={(event) => {
+                  const el = event.currentTarget;
+                  if (el.src !== noImageFallback) {
+                    el.src = noImageFallback;
+                  }
+                }}
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+              />
             </div>
           ))}
         </div>

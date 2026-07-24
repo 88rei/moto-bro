@@ -1,133 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { createServerFn } from "@tanstack/react-start";
-import { fallbackVault, instagramUsernames, type VaultImage } from "@/data/vault";
+import { vaultShowcase, type VaultImage } from "@/data/vault";
 import { SectionHeader } from "@/components/site/SectionHeader";
 import { Lightbox } from "@/components/site/Lightbox";
 
-type InstagramEdge = {
-  node?: {
-    id?: string;
-    display_url?: string;
-    thumbnail_src?: string;
-    accessibility_caption?: string;
-    dimensions?: { width?: number; height?: number };
-    is_video?: boolean;
-    taken_at_timestamp?: number;
-  };
-};
+const noImageFallback = `data:image/svg+xml;utf8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200"><rect width="1200" height="1200" fill="#111111"/><rect x="80" y="80" width="1040" height="1040" rx="24" ry="24" fill="none" stroke="#3b3b3b" stroke-width="16"/><path d="M300 820l180-220 140 140 180-220 100 120v180H300z" fill="#2a2a2a"/><circle cx="460" cy="420" r="70" fill="#2a2a2a"/><text x="600" y="980" font-family="monospace" font-size="64" fill="#9a9a9a" text-anchor="middle">NO IMAGE</text></svg>'
+)}`;
 
-type InstagramPayload = {
-  data?: {
-    user?: {
-      edge_owner_to_timeline_media?: {
-        edges?: InstagramEdge[];
-      };
-    };
-  };
-  graphql?: {
-    user?: {
-      edge_owner_to_timeline_media?: {
-        edges?: InstagramEdge[];
-      };
-    };
-  };
-  user?: {
-    edge_owner_to_timeline_media?: {
-      edges?: InstagramEdge[];
-    };
-  };
-};
-
-const readInstagramFrames = createServerFn({ method: "GET" }).handler(async () => {
-  const rankedUsers = instagramUsernames.map((username, rank) => ({ username, rank }));
-  const collected: VaultImage[] = [];
-
-  for (const user of rankedUsers) {
-    const media = await fetchUserMedia(user.username);
-    for (const frame of media) {
-      collected.push({
-        ...frame,
-        username: user.username,
-      });
-    }
-  }
-
-  const rankByUser = new Map(rankedUsers.map((u) => [u.username, u.rank]));
-
-  const images = collected
-    .sort((a, b) => {
-      const byDate = (b.timestamp ?? 0) - (a.timestamp ?? 0);
-      if (byDate !== 0) return byDate;
-      return (rankByUser.get(a.username ?? "") ?? Number.MAX_SAFE_INTEGER) - (rankByUser.get(b.username ?? "") ?? Number.MAX_SAFE_INTEGER);
-    })
-    .slice(0, 3);
-
-  if (images.length > 0) {
-    return { images, source: "instagram" as const };
-  }
-
-  return { images: fallbackVault.slice(0, 3), source: "local" as const };
-});
-
-async function fetchUserMedia(username: string): Promise<VaultImage[]> {
-  const urls = [
-    `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
-    `https://i.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
-    `https://www.instagram.com/${encodeURIComponent(username)}/?__a=1&__d=dis`,
-  ];
-
-  for (const url of urls) {
-    try {
-      const response = await fetch(url, {
-        headers: {
-          "accept": "application/json",
-          "user-agent": "Mozilla/5.0",
-          "x-ig-app-id": "936619743392459",
-        },
-      });
-
-      if (!response.ok) continue;
-
-      const text = await response.text();
-      if (!text) continue;
-
-      const payload = JSON.parse(text) as InstagramPayload;
-      const edges =
-        payload.data?.user?.edge_owner_to_timeline_media?.edges ??
-        payload.graphql?.user?.edge_owner_to_timeline_media?.edges ??
-        payload.user?.edge_owner_to_timeline_media?.edges ??
-        [];
-
-      const frames = edges
-        .map((edge) => edge.node)
-        .filter((node): node is NonNullable<typeof node> => Boolean(node?.display_url || node?.thumbnail_src))
-        .filter((node) => !node.is_video)
-        .map((node) => ({
-          src: node.display_url ?? node.thumbnail_src ?? "",
-          alt: node.accessibility_caption ?? `${username} post`,
-          w: node.dimensions?.width ?? 1080,
-          h: node.dimensions?.height ?? 1350,
-          source: "instagram" as const,
-          username,
-          timestamp: node.taken_at_timestamp,
-        }))
-        .filter((frame) => Boolean(frame.src));
-
-      if (frames.length > 0) {
-        return frames;
-      }
-    } catch {
-      // Ignore source errors and continue probing next endpoint.
-    }
-  }
-
-  return [];
-}
+const localFallbackFrames: VaultImage[] = [
+  {
+    src: vaultShowcase[0].src,
+    alt: vaultShowcase[0].alt,
+    w: 1200,
+    h: 1200,
+    source: "local",
+  },
+  {
+    src: vaultShowcase[1].src,
+    alt: vaultShowcase[1].alt,
+    w: 1200,
+    h: 1200,
+    source: "local",
+  },
+];
 
 export const Route = createFileRoute("/vault")({
-  loader: async () => {
-    return await readInstagramFrames();
+  loader: () => {
+    return { images: localFallbackFrames, source: "local" as const };
   },
   head: () => ({
     meta: [
@@ -142,7 +42,7 @@ export const Route = createFileRoute("/vault")({
 
 function VaultPage() {
   const [openAt, setOpenAt] = useState<number | null>(null);
-  const { images, source } = Route.useLoaderData();
+  const { images } = Route.useLoaderData();
 
   function labelFor(img: VaultImage): string {
     if (img.timestamp) {
@@ -159,7 +59,7 @@ function VaultPage() {
     <div className="p-6 py-10 space-y-8 animate-entrance">
       <SectionHeader title="The Vault" tag={`${String(images.length).padStart(2, "0")}_FRAMES`} />
       <p className="text-sm text-neutral-400 max-w-lg">
-        Source: {source === "instagram" ? "Instagram sync" : "Local archive fallback"}. Tap any frame to expand.
+        Source: Local archive fallback. Tap any frame to expand.
       </p>
       <div className="columns-2 md:columns-3 gap-3 [column-fill:_balance]">
         {images.map((img, i) => (
@@ -172,6 +72,12 @@ function VaultPage() {
               src={img.src}
               alt={img.alt}
               loading="lazy"
+              onError={(event) => {
+                const el = event.currentTarget;
+                if (el.src !== noImageFallback) {
+                  el.src = noImageFallback;
+                }
+              }}
               className="w-full h-auto object-cover group-hover:scale-[1.03] transition-transform duration-500"
             />
             <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_20%_20%,rgba(255,30,30,0.2),transparent_40%),linear-gradient(130deg,rgba(255,255,255,0.08),transparent_35%)] opacity-80 group-hover:opacity-100 transition-opacity duration-500" />

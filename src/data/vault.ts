@@ -19,7 +19,22 @@ export type VaultImage = {
   timestamp?: number;
 };
 
-export const instagramUsernames = ["88rein"] as const;
+export const vaultShowcase: VaultImage[] = [
+  {
+    src: "https://i.ibb.co.com/7x6vnCzw/651826415-18575140612007044-7829382730766378491-n.webp",
+    alt: "Vault frame A",
+    w: 1200,
+    h: 1200,
+    source: "local",
+  },
+  {
+    src: "https://i.ibb.co.com/VcpMjhLX/672487145-18584796250007044-2400305151125866529-n.webp",
+    alt: "Vault frame B",
+    w: 1200,
+    h: 1200,
+    source: "local",
+  },
+];
 
 export const fallbackVault: VaultImage[] = [
   { src: v1, alt: "Glowing exhaust tip", w: 800, h: 1000, source: "local" },
